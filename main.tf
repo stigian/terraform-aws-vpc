@@ -504,8 +504,6 @@ resource "aws_networkmanager_attachment_accepter" "cwan" {
 
 # FLOW LOGS
 module "flow_logs" {
-  count = local.create_flow_logs ? 1 : 0
-
   source = "./modules/flow_logs"
 
   name                = local.log_name

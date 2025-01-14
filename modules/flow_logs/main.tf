@@ -1,37 +1,9 @@
 locals {
-  # does log destination need to be created?
-  create_flow_log_destination = (var.flow_log_definition.log_destination == null && var.flow_log_definition.log_destination_type != "none") ? true : false
+  # log_destination (str): The destination for the flow logs. Can be either "cloud-watch-logs" or "s3".
+  log_destination = var.flow_log_definition.log_destination
 
-  # which log destination to use
-  log_destination = local.create_flow_log_destination ? (
-    var.flow_log_definition.log_destination_type == "cloud-watch-logs" ? module.cloudwatch_log_group[0].log_group.arn : module.s3_log_bucket[0].bucket_flow_logs_attributes.arn # change to s3 when implemented
-  ) : var.flow_log_definition.log_destination
-
-  # Use IAM from submodule if if not passed
-  iam_role_arn = local.create_flow_log_destination ? (
-    var.flow_log_definition.log_destination_type == "cloud-watch-logs" ? module.cloudwatch_log_group[0].iam_role.arn : null # s3: unnecessary, svc creates its own bucket policy
-  ) : var.flow_log_definition.iam_role_arn
-}
-
-module "cloudwatch_log_group" {
-  # if create destination and type = cloud-watch-logs
-  count   = (local.create_flow_log_destination && var.flow_log_definition.log_destination_type == "cloud-watch-logs") ? 1 : 0
-  source  = "aws-ia/cloudwatch-log-group/aws"
-  version = "1.0.0"
-
-  name                  = var.name
-  retention_in_days     = var.flow_log_definition.retention_in_days == null ? 180 : var.flow_log_definition.retention_in_days
-  kms_key_id            = var.flow_log_definition.kms_key_id
-  aws_service_principal = "vpc-flow-logs.amazonaws.com"
-  tags                  = var.tags
-}
-
-module "s3_log_bucket" {
-  # if create destination and type = s3
-  count  = (local.create_flow_log_destination && var.flow_log_definition.log_destination_type == "s3") ? 1 : 0
-  source = "./modules/s3_log_bucket"
-
-  name = var.name
+  # iam_role_arn (str): The IAM role ARN to use for CloudWatch Logs. Not applicable for S3 as the bucket policy applies.
+  iam_role_arn = var.flow_log_definition.log_destination_type == "cloud-watch-logs" ? var.flow_log_definition.iam_role_arn : null
 }
 
 resource "aws_flow_log" "main" {
